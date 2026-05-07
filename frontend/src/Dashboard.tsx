@@ -7,65 +7,109 @@ interface DashboardProps {
   onSelectCase: (caseId: string) => void;
 }
 
+const STATE_BADGE: Record<string, string> = {
+  UPLOADED:  'badge-blue',
+  EXTRACTED: 'badge-amber',
+  VERIFIED:  'badge-green',
+  PENDING:   'badge-gray',
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ onSelectCase }) => {
-  const [tab, setTab] = useState<'week' | 'month' | 'risk'>('week');
+  const [tab, setTab]     = useState<'week' | 'month' | 'risk'>('week');
   const [cases, setCases] = useState<any[]>([]);
+  const [stats, setStats] = useState({ week: 0, month: 0, risk: 0 });
 
   useEffect(() => {
-    const endpoint =
-      tab === 'risk' ? '/dashboard/contempt-risk' :
-      tab === 'month' ? '/dashboard/monthly' :
-      '/dashboard/weekly';
+    Promise.all([
+      fetch(`${API}/dashboard/weekly`).then(r => r.json()),
+      fetch(`${API}/dashboard/monthly`).then(r => r.json()),
+      fetch(`${API}/dashboard/contempt-risk`).then(r => r.json()),
+    ]).then(([w, m, r]) => setStats({
+      week:  Array.isArray(w) ? w.length : 0,
+      month: Array.isArray(m) ? m.length : 0,
+      risk:  Array.isArray(r) ? r.length : 0,
+    })).catch(() => {});
+  }, []);
 
-    fetch(`${API}${endpoint}`)
-      .then(res => res.json())
-      .then(data => setCases(Array.isArray(data) ? data : []))
-      .catch(err => console.error(err));
+  useEffect(() => {
+    const ep = tab === 'risk' ? '/dashboard/contempt-risk'
+             : tab === 'month' ? '/dashboard/monthly'
+             : '/dashboard/weekly';
+    fetch(`${API}${ep}`)
+      .then(r => r.json())
+      .then(d => setCases(Array.isArray(d) ? d : []))
+      .catch(console.error);
   }, [tab]);
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>NyayaSetu Dashboard</h1>
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-        <button onClick={() => setTab('week')} style={{ borderBottom: tab === 'week' ? '2px solid #3182ce' : 'none', background: 'none', cursor: 'pointer', padding: '8px 0' }}>This Week</button>
-        <button onClick={() => setTab('month')} style={{ borderBottom: tab === 'month' ? '2px solid #3182ce' : 'none', background: 'none', cursor: 'pointer', padding: '8px 0' }}>This Month</button>
-        <button onClick={() => setTab('risk')} style={{ color: 'red', borderBottom: tab === 'risk' ? '2px solid red' : 'none', background: 'none', cursor: 'pointer', padding: '8px 0' }}>Contempt Risk Register</button>
+    <div className="page">
+      <h1 className="page-title">Compliance Dashboard</h1>
+      <p className="page-sub">Karnataka High Court — Judgment Monitoring</p>
+
+      <div className="stats-row">
+        <div className="stat-card week">
+          <div className="stat-label">Due This Week</div>
+          <div className="stat-value">{stats.week}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Due This Month</div>
+          <div className="stat-value">{stats.month}</div>
+        </div>
+        <div className="stat-card risk">
+          <div className="stat-label">Contempt Risk</div>
+          <div className="stat-value">{stats.risk}</div>
+        </div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-            <th style={{ padding: '8px' }}>Case Number</th>
-            <th style={{ padding: '8px' }}>Department</th>
-            <th style={{ padding: '8px' }}>Deadline</th>
-            <th style={{ padding: '8px' }}>State</th>
-            <th style={{ padding: '8px' }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cases.length === 0 && (
-            <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No cases found</td></tr>
-          )}
-          {cases.map((c: any) => (
-            <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '8px' }}>
-                <button
-                  onClick={() => onSelectCase(c.case_id)}
-                  style={{ background: 'none', border: 'none', color: '#3182ce', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-                >
-                  {c.case_id}
-                </button>
-              </td>
-              <td style={{ padding: '8px' }}>{c.ccms_metadata?.department_name || 'N/A'}</td>
-              <td style={{ padding: '8px' }}>{c.deadline || '—'}</td>
-              <td style={{ padding: '8px' }}>{c.lifecycle_state}</td>
-              <td style={{ padding: '8px' }}>
-                {c.lifecycle_state === 'VERIFIED' && <ActionTracker caseId={c.case_id} />}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="card">
+        <div className="card-pad">
+          <div className="tabs">
+            <button className={`tab${tab === 'week'  ? ' active' : ''}`} onClick={() => setTab('week')}>Due This Week</button>
+            <button className={`tab${tab === 'month' ? ' active' : ''}`} onClick={() => setTab('month')}>Due This Month</button>
+            <button className={`tab risk-tab${tab === 'risk' ? ' active' : ''}`} onClick={() => setTab('risk')}>Contempt Risk Register</button>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>Case Number</th>
+                  <th>Department</th>
+                  <th>Deadline</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cases.length === 0 && (
+                  <tr className="empty-row"><td colSpan={6}>No cases found for this view</td></tr>
+                )}
+                {cases.map((c: any) => (
+                  <tr key={c.id}>
+                    <td>
+                      <button className="case-link" onClick={() => onSelectCase(c.case_id)}>
+                        {c.case_id}
+                      </button>
+                    </td>
+                    <td>{c.ccms_metadata?.case_number || '—'}</td>
+                    <td>{c.ccms_metadata?.department_name || '—'}</td>
+                    <td>{c.deadline || '—'}</td>
+                    <td>
+                      <span className={`badge ${STATE_BADGE[c.lifecycle_state] || 'badge-gray'}`}>
+                        {c.lifecycle_state}
+                      </span>
+                    </td>
+                    <td>
+                      {c.lifecycle_state === 'VERIFIED' && <ActionTracker caseId={c.case_id} />}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

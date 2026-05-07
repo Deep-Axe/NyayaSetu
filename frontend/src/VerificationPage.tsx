@@ -7,122 +7,145 @@ interface VerificationPageProps {
   caseId: string | null;
 }
 
+const CONF_BADGE: Record<string, string> = {
+  high:   'badge-green',
+  medium: 'badge-amber',
+  low:    'badge-red',
+};
+
 const VerificationPage: React.FC<VerificationPageProps> = ({ caseId }) => {
-  const [caseData, setCaseData] = useState<any>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
+  const [caseData,   setCaseData]   = useState<any>(null);
+  const [editingId,  setEditingId]  = useState<string | null>(null);
+  const [editText,   setEditText]   = useState('');
+  const [busy,       setBusy]       = useState(false);
 
   const activeCaseId = caseId ?? '';
 
-  useEffect(() => {
-    if (!activeCaseId) return;
+  const refreshCase = () =>
     fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}`)
-      .then(res => res.json())
-      .then(data => setCaseData(data))
-      .catch(err => console.error(err));
+      .then(r => r.json())
+      .then(setCaseData)
+      .catch(console.error);
+
+  useEffect(() => {
+    if (activeCaseId) refreshCase();
+    else setCaseData(null);
   }, [activeCaseId]);
 
-  const handleAction = (directionId: string, action: string, newValue: string | null = null) => {
-    fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}/directions/${directionId}/verify`, {
+  const handleAction = async (dirId: string, action: string, newValue: string | null = null) => {
+    setBusy(true);
+    await fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}/directions/${dirId}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, field_name: 'text', new_value: newValue }),
-    })
-      .then(res => res.json())
-      .then(() => alert(`${action} recorded!`));
+    }).catch(console.error);
+    await refreshCase();
+    setBusy(false);
   };
 
-  const handleSaveEdit = (directionId: string) => {
-    handleAction(directionId, 'edited', editText);
+  const handleSaveEdit = async (dirId: string) => {
+    await handleAction(dirId, 'edited', editText);
     setEditingId(null);
   };
 
-  const handleSubmit = () => {
-    fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}/state?state=VERIFIED`, {
+  const handleSubmit = async () => {
+    setBusy(true);
+    await fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}/state?state=VERIFIED`, {
       method: 'PATCH',
-    }).then(() => alert('Action Plan Verified!'));
+    }).catch(console.error);
+    await refreshCase();
+    setBusy(false);
   };
 
   if (!activeCaseId) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-        <p>Select a case from the Dashboard to review it here.</p>
+      <div className="verify-layout">
+        <div className="empty-verify" style={{ flex: 1 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+          </svg>
+          <p>Select a case from the Dashboard to review it here.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
-        <PDFViewer pdfUrl={`${API}/cases/${encodeURIComponent(activeCaseId)}/pdf`} highlights={[]} />
+    <div className="verify-layout">
+      <div className="verify-pdf">
+        <PDFViewer
+          pdfUrl={`${API}/cases/${encodeURIComponent(activeCaseId)}/pdf`}
+          highlights={[]}
+        />
       </div>
 
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-        <h1 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>Review Action Plan</h1>
-        <p style={{ color: '#666', marginBottom: '20px', fontSize: '0.9rem' }}>{activeCaseId}</p>
+      <div className="verify-panel">
+        <div className="verify-header">
+          <h1>Review Action Plan</h1>
+          <p>{activeCaseId}</p>
+        </div>
 
-        {caseData && caseData.directions ? caseData.directions.map((d: any) => (
-          <div key={d.direction_id} style={{ border: '1px solid #ddd', padding: '15px', marginBottom: '15px', borderRadius: '6px' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', color: '#1a365d' }}>Direction {d.direction_id}</h3>
+        {!caseData && <p style={{ color: 'var(--gray-400)' }}>Loading…</p>}
 
-            {editingId === d.direction_id ? (
-              <div>
-                <textarea
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  style={{ width: '100%', minHeight: '80px', padding: '8px', marginBottom: '8px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical' }}
-                />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => handleSaveEdit(d.direction_id)}
-                    style={{ flex: 1, padding: '6px', backgroundColor: '#3182ce', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Save Edit
-                  </button>
-                  <button
-                    onClick={() => setEditingId(null)}
-                    style={{ flex: 1, padding: '6px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p style={{ margin: '0 0 12px', color: '#333' }}>{d.extracted_json?.text || 'No text available'}</p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => handleAction(d.direction_id, 'approved')}
-                    style={{ flex: 1, padding: '6px', backgroundColor: '#e6fffa', color: '#234e52', border: '1px solid #81e6d9', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => { setEditingId(d.direction_id); setEditText(d.extracted_json?.text ?? ''); }}
-                    style={{ flex: 1, padding: '6px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleAction(d.direction_id, 'rejected')}
-                    style={{ flex: 1, padding: '6px', color: 'red', border: '1px solid #feb2b2', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )) : (
-          <p style={{ color: '#888' }}>Loading case data…</p>
+        {caseData?.directions?.map((d: any) => {
+          const confidence = d.extracted_json?.confidence ?? 'medium';
+          return (
+            <div key={d.direction_id} className="direction-card">
+              <h3>Direction {d.direction_id}</h3>
+              <span
+                className={`badge ${CONF_BADGE[confidence] || 'badge-gray'}`}
+                style={{ marginBottom: 10, display: 'inline-block' }}
+              >
+                {confidence} confidence
+              </span>
+
+              {editingId === d.direction_id ? (
+                <>
+                  <textarea
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    style={{ width: '100%', minHeight: 80, marginBottom: 10, resize: 'vertical' }}
+                  />
+                  <div className="direction-actions">
+                    <button className="btn btn-primary" style={{ flex: 1 }}
+                      onClick={() => handleSaveEdit(d.direction_id)} disabled={busy}>
+                      Save Edit
+                    </button>
+                    <button className="btn btn-outline" style={{ flex: 1 }}
+                      onClick={() => setEditingId(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>{d.extracted_json?.text || 'No text available'}</p>
+                  <div className="direction-actions">
+                    <button className="btn btn-success" style={{ flex: 1 }}
+                      onClick={() => handleAction(d.direction_id, 'approved')} disabled={busy}>
+                      Approve
+                    </button>
+                    <button className="btn btn-outline" style={{ flex: 1 }}
+                      onClick={() => { setEditingId(d.direction_id); setEditText(d.extracted_json?.text ?? ''); }}>
+                      Edit
+                    </button>
+                    <button className="btn btn-danger" style={{ flex: 1 }}
+                      onClick={() => handleAction(d.direction_id, 'rejected')} disabled={busy}>
+                      Reject
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {caseData && (
+          <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={busy}>
+            Submit Verified Action Plan
+          </button>
         )}
-
-        <button
-          onClick={handleSubmit}
-          style={{ width: '100%', padding: '12px', backgroundColor: '#3182ce', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          Submit Verified Action Plan
-        </button>
       </div>
     </div>
   );

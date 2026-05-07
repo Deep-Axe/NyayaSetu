@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import Dashboard from './Dashboard'
 import VerificationPage from './VerificationPage'
+import UploadPage from './UploadPage'
 import './App.css'
 
 function App() {
-  const [page, setPage] = useState<'dashboard' | 'verify'>('dashboard')
+  const [page, setPage] = useState<'dashboard' | 'verify' | 'upload'>('dashboard')
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null)
 
   const handleSelectCase = (caseId: string) => {
@@ -12,20 +13,24 @@ function App() {
     setPage('verify')
   }
 
+  const handleUploadComplete = (caseId: string) => {
+    setSelectedCaseId(caseId)
+    setPage('verify')
+  }
+
   return (
-    <div className="app-container">
-      <nav style={{ padding: '10px', backgroundColor: '#1a365d', color: 'white', display: 'flex', gap: '20px' }}>
-        <div style={{ fontWeight: 'bold', marginRight: 'auto' }}>NyayaSetu</div>
-        <button onClick={() => setPage('dashboard')} style={{ color: 'white', background: 'none', border: 'none', cursor: 'pointer' }}>Dashboard</button>
-        <button onClick={() => setPage('verify')} style={{ color: 'white', background: 'none', border: 'none', cursor: 'pointer' }}>Verification</button>
+    <>
+      <nav className="nav">
+        <span className="nav-brand">Nyaya<span>Setu</span></span>
+        <button className={`nav-btn${page === 'dashboard' ? ' active' : ''}`} onClick={() => setPage('dashboard')}>Dashboard</button>
+        <button className={`nav-btn${page === 'upload' ? ' active' : ''}`} onClick={() => setPage('upload')}>Upload Judgment</button>
+        <button className={`nav-btn${page === 'verify' ? ' active' : ''}`} onClick={() => setPage('verify')}>Verify</button>
       </nav>
 
-      <main>
-        {page === 'dashboard'
-          ? <Dashboard onSelectCase={handleSelectCase} />
-          : <VerificationPage caseId={selectedCaseId} />}
-      </main>
-    </div>
+      {page === 'dashboard' && <Dashboard onSelectCase={handleSelectCase} />}
+      {page === 'upload' && <UploadPage onComplete={handleUploadComplete} />}
+      {page === 'verify' && <VerificationPage caseId={selectedCaseId} />}
+    </>
   )
 }
 
