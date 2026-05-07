@@ -31,7 +31,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, highlights }) => {
   return (
     <div className="pdf-viewer-container" style={{ height: '100vh', overflowY: 'auto', position: 'relative' }}>
       <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess}>
-        {Array.from(new Array(numPages || 0), (el, index) => (
+        {Array.from(new Array(numPages || 0), (_el, index) => (
           <div key={`page_${index + 1}`} style={{ position: 'relative', marginBottom: '20px' }}>
             <Page pageNumber={index + 1} />
             {highlights.filter(h => h.page === index + 1).map((h, i) => (
