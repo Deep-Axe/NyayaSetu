@@ -3,10 +3,6 @@ name: Deploy Backend to Azure App Service
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - 'requirements.txt'
-      - 'runtime.txt'
 
 jobs:
   deploy:
@@ -14,6 +10,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
