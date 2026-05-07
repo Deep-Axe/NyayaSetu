@@ -1,0 +1,13 @@
+fastapi==0.136.1
+uvicorn==0.46.0
+SQLAlchemy==2.0.49
+psycopg2-binary==2.9.12
+python-dotenv==1.2.2
+python-multipart==0.0.27
+PyMuPDF==1.27.2.3
+python-dateutil==2.9.0.post0
+sarvamai==0.1.28
+azure-communication-email==1.1.0
+azure-identity==1.25.3
+azure-ai-projects==2.1.0
+pydantic>=2.0

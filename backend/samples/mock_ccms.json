@@ -1,0 +1,22 @@
+[
+  {
+    "case_id": "WP/12345/2024",
+    "case_number": "WP 12345/2024",
+    "court_name": "Karnataka High Court",
+    "case_type": "service_matter",
+    "government_role": "respondent",
+    "filing_date": "2023-05-10",
+    "disposal_date": "2024-03-14",
+    "department_name": "Public Works Department"
+  },
+  {
+    "case_id": "WP/67890/2024",
+    "case_number": "WP 67890/2024",
+    "court_name": "Karnataka High Court",
+    "case_type": "land_acquisition",
+    "government_role": "respondent",
+    "filing_date": "2022-11-20",
+    "disposal_date": "2024-04-01",
+    "department_name": "Revenue Department"
+  }
+]
