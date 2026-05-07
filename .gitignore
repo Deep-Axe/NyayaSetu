@@ -13,6 +13,9 @@ node_modules/
 *.md
 *.docx
 *.pdf
+*.ps1
+deploy_env.sh
+nyayasetu-api.PublishSettings
 
 # Distribution / packaging
 .Python
@@ -234,3 +237,9 @@ test_azure_email.py
 test_sarvam_job.py
 test_db.py
 list_agents.py
+
+# Deployment and Secrets
+deploy_env.sh
+deploy_env.ps1
+*.PublishSettings
+nyayasetu-api.PublishSettings

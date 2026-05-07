@@ -1,5 +1,6 @@
 import json
 from backend.extraction.extractor import get_openai_client
+from backend.config import AGENT_NAME, AGENT_VERSION
 
 # Official list of 42 Karnataka Government Departments from dept_gov.md
 OFFICIAL_DEPARTMENTS = [
@@ -44,23 +45,20 @@ def attribute_department(pdf_text, ccms_meta, direction_text):
     {OFFICIAL_DEPARTMENTS}
 
     Direction: "{direction_text}"
-    
+
     Context:
     CCMS Department: {ccms_meta.department_name}
     Case Type: {ccms_meta.case_type}
-    
+
     Judgment snippet:
-    {pdf_text[:2000]} # Using a snippet for context
+    {pdf_text[:2000]}
     """
-    
-    # In real implementation, Claude would return structured JSON
-    # For now, we'll simulate the logic
-    
+
     openai_client = get_openai_client()
 
     response = openai_client.responses.create(
         input=[{"role": "user", "content": prompt}],
-        extra_body={"agent_reference": {"name": "nyayasetu", "version": "3", "type": "agent_reference"}},
+        extra_body={"agent_reference": {"name": AGENT_NAME, "version": AGENT_VERSION, "type": "agent_reference"}},
     )
     
     response_text = response.output_text

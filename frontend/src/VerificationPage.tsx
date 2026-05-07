@@ -23,7 +23,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({ caseId }) => {
 
   const refreshCase = () =>
     fetch(`${API}/cases/${encodeURIComponent(activeCaseId)}`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setCaseData)
       .catch(console.error);
 

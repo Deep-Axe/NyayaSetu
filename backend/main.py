@@ -16,6 +16,22 @@ from backend.notifications.engine import check_and_notify_deadlines
 import json
 import os
 from datetime import datetime, date, timedelta
+from sqlalchemy import inspect as sa_inspect
+
+
+def _to_dict(obj):
+    """Serialize a SQLAlchemy ORM row to a plain dict."""
+    cols = sa_inspect(type(obj)).mapper.column_attrs
+    d = {}
+    for col in cols:
+        val = getattr(obj, col.key)
+        if isinstance(val, date):
+            d[col.key] = val.isoformat()
+        elif hasattr(val, 'value'):          # Enum
+            d[col.key] = val.value
+        else:
+            d[col.key] = val
+    return d
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -149,7 +165,10 @@ def get_case(case_id: str, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     directions = db.query(Direction).filter(Direction.case_id == case.id).all()
-    return {"case": case, "directions": directions}
+    return {
+        **_to_dict(case),
+        "directions": [_to_dict(d) for d in directions],
+    }
 
 
 @app.get("/cases/{case_id}/pdf")
@@ -234,7 +253,7 @@ def get_audit_trail(case_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Case not found")
     dir_ids = [d.id for d in db.query(Direction).filter(Direction.case_id == case.id).all()]
     records = db.query(VerificationRecord).filter(VerificationRecord.direction_id.in_(dir_ids)).all()
-    return records
+    return [_to_dict(r) for r in records]
 
 
 @app.get("/dashboard/weekly")
@@ -244,7 +263,7 @@ def get_weekly_dashboard(db: Session = Depends(get_db)):
         Case.deadline >= today,
         Case.deadline <= today + timedelta(days=7),
     ).all()
-    return cases
+    return [_to_dict(c) for c in cases]
 
 
 @app.get("/dashboard/monthly")
@@ -254,7 +273,7 @@ def get_monthly_dashboard(db: Session = Depends(get_db)):
         Case.deadline >= today,
         Case.deadline <= today + timedelta(days=30),
     ).all()
-    return cases
+    return [_to_dict(c) for c in cases]
 
 
 def get_current_user_role():
@@ -279,7 +298,7 @@ def get_contempt_risk(
         Case.lifecycle_state == CaseState.VERIFIED,
         Case.deadline < today,
     ).all()
-    return cases
+    return [_to_dict(c) for c in cases]
 
 
 @app.post("/notifications/check-deadlines")
