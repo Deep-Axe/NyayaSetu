@@ -14,7 +14,14 @@ _LIMIT_PER_HOUR = 10
 # Sliding-window rate limiter — stores epoch timestamps of recent sends
 _send_times: deque = deque()
 
-_client = EmailClient.from_connection_string(ACS_CONNECTION_STRING)
+_client = None
+
+
+def _get_client() -> EmailClient:
+    global _client
+    if _client is None:
+        _client = EmailClient.from_connection_string(ACS_CONNECTION_STRING)
+    return _client
 
 
 def _within_rate_limit() -> bool:
@@ -56,7 +63,7 @@ def send_email_notification(to_email: str, subject: str, body_text: str, body_ht
     }
 
     try:
-        poller = _client.begin_send(message)
+        poller = _get_client().begin_send(message)
         result = poller.result()
         _send_times.append(time.time())
         logger.info("Email sent to %s — message id: %s", to_email, result.get("id"))

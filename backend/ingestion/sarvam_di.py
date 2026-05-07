@@ -6,13 +6,12 @@ import json
 from sarvamai import SarvamAI
 from backend.config import SARVAM_API_KEY
 
-client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
-
 def extract_with_sarvam_di(pdf_path):
     """
     Submits a PDF to Sarvam Document Intelligence and returns the structured result using the Python SDK.
     Implements 10-page chunking to respect Sarvam's page limits.
     """
+    client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
     doc = fitz.open(pdf_path)
     total_pages = len(doc)
     chunk_size = 10
